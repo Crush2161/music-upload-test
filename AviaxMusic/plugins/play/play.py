@@ -1,3 +1,5 @@
+# AviaxMusic/AviaxMusic/plugins/play.py
+
 import random
 import string
 
@@ -59,13 +61,76 @@ async def play_song(client, message: Message):
 
     # Agar song nahi mila, YouTube se download karo
     await message.reply_text("Searching and downloading from YouTube...")
+    try:
+        filename = await download_song(query)
+        await message.reply_audio(audio=filename, caption="Playing from YouTube 🎵")
+    except Exception as e:
+        await message.reply_text(f"An error occurred while downloading: {str(e)}")
+
 
 async def download_song(query: str):
-    yt = YouTube(f"https://www.youtube.com/results?search_query={query}")
-    stream = yt.streams.filter(only_audio=True).first()
-    filename = f"downloads/{query}.mp3"
-    stream.download(output_path="downloads", filename=f"{query}.mp3")
-    return filename
+    try:
+        yt = YouTube(f"https://www.youtube.com/results?search_query={query}")
+        stream = yt.streams.filter(only_audio=True).first()
+        filename = f"downloads/{query}.mp3"
+        stream.download(output_path="downloads", filename=f"{query}.mp3")
+        return filename
+    except Exception as e:
+        raise Exception(f"Failed to download the song: {str(e)}")
+
+
+@app.on_message(
+    filters.command(
+        [
+            "play",
+            "vplay",
+            "cplay",
+            "cvplay",
+            "playforce",
+            "vplayforce",
+            "cplayforce",
+            "cvplayforce",
+        ]
+    )
+    & filters.group
+    & ~BANNED_USERS
+)
+@PlayWrapper
+async def play_song(client, message: Message):
+    query = message.text.split(None, 1)[1]
+
+    # Pehle log group check karo
+    song = await search_log_group(client, query)
+    if song:
+        await message.reply_audio(audio=song.file_id, caption="Playing from log group 🎵")
+        return
+
+    # Agar song nahi mila, YouTube se download karo
+    await message.reply_text("Searching and downloading from YouTube...")
+
+    # Download the song from YouTube
+    try:
+        filename = await download_song(query)
+    except Exception as e:
+        await message.reply_text(f"Error downloading song: {e}")
+        return
+
+    # Play the song
+    try:
+        await play_commnd(
+            client,
+            message,
+            _,
+            chat_id,
+            video,
+            channel,
+            playmode,
+            url,
+            fplay,
+        )
+    except Exception as e:
+        await message.reply_text(f"Error playing song: {e}")
+
 
 async def play_commnd(
     client,
@@ -78,6 +143,23 @@ async def play_commnd(
     url,
     fplay,
 ):
+    """
+    Play a song.
+
+    Args:
+        client: The Pyrogram client.
+        message: The message that triggered this function.
+        _: The language object.
+        chat_id: The ID of the chat.
+        video: Whether to play a video or not.
+        channel: Whether to play in a channel or not.
+        playmode: The play mode.
+        url: The URL of the song.
+        fplay: Whether to force play or not.
+
+    Returns:
+        None
+    """
     mystic = await message.reply_text(
         _["play_2"].format(channel) if channel else _["play_1"]
     )
@@ -466,6 +548,17 @@ async def play_commnd(
 @app.on_callback_query(filters.regex("MusicStream") & ~BANNED_USERS)
 @languageCB
 async def play_music(client, CallbackQuery, _):
+    """
+    Play music.
+
+    Args:
+        client: The Pyrogram client.
+        CallbackQuery: The callback query.
+        _: The language object.
+
+    Returns:
+        None
+    """
     callback_data = CallbackQuery.data.strip()
     callback_request = callback_data.split(None, 1)[1]
     vidid, user_id, mode, cplay, fplay = callback_request.split("|")
@@ -535,6 +628,16 @@ async def play_music(client, CallbackQuery, _):
 
 @app.on_callback_query(filters.regex("AnonymousAdmin") & ~BANNED_USERS)
 async def anonymous_check(client, CallbackQuery):
+    """
+    Check if the user is an anonymous admin.
+
+    Args:
+        client: The Pyrogram client.
+        CallbackQuery: The callback query.
+
+    Returns:
+        None
+    """
     try:
         await CallbackQuery.answer(
             "» ʀᴇᴠᴇʀᴛ ʙᴀᴄᴋ ᴛᴏ ᴜsᴇʀ ᴀᴄᴄᴏᴜɴᴛ :\n\nᴏᴘᴇɴ ʏᴏᴜʀ ɢʀᴏᴜᴘ sᴇᴛᴛɪɴɢs.\n-> ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀs\n-> ᴄʟɪᴄᴋ ᴏɴ ʏᴏᴜʀ ɴᴀᴍᴇ\n-> ᴜɴᴄʜᴇᴄᴋ ᴀɴᴏɴʏᴍᴏᴜs ᴀᴅᴍɪɴ ᴘᴇʀᴍɪssɪᴏɴs.",
@@ -547,6 +650,17 @@ async def anonymous_check(client, CallbackQuery):
 @app.on_callback_query(filters.regex("AviaxPlaylists") & ~BANNED_USERS)
 @languageCB
 async def play_playlists_command(client, CallbackQuery, _):
+    """
+    Play playlists.
+
+    Args:
+        client: The Pyrogram client.
+        CallbackQuery: The callback query.
+        _: The language object.
+
+    Returns:
+        None
+    """
     callback_data = CallbackQuery.data.strip()
     callback_request = callback_data.split(None, 1)[1]
     (
@@ -635,6 +749,17 @@ async def play_playlists_command(client, CallbackQuery, _):
 @app.on_callback_query(filters.regex("slider") & ~BANNED_USERS)
 @languageCB
 async def slider_queries(client, CallbackQuery, _):
+    """
+    Slider queries.
+
+    Args:
+        client: The Pyrogram client.
+        CallbackQuery: The callback query.
+        _: The language object.
+
+    Returns:
+        None
+    """
     callback_data = CallbackQuery.data.strip()
     callback_request = callback_data.split(None, 1)[1]
     (
