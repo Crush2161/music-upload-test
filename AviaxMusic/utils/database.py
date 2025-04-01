@@ -6,6 +6,9 @@ from typing import Dict, List, Union
 from AviaxMusic import userbot
 from AviaxMusic.core.mongo import mongodb
 
+from pyrogram import Client
+from config import LOG_GROUP_ID
+
 authdb = mongodb.adminauth
 authuserdb = mongodb.authuser
 autoenddb = mongodb.autoend
@@ -123,6 +126,13 @@ async def set_calls_assistant(chat_id):
         upsert=True,
     )
     return ran_assistant
+
+
+async def search_log_group(client: Client, query: str):
+    async for message in client.search_messages(LOG_GROUP_ID, query):
+        if message.audio or message.document:
+            return message.audio or message.document  # Found song in log group
+    return None  # Not found
 
 
 async def group_assistant(self, chat_id: int) -> int:
