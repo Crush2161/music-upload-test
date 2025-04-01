@@ -5,6 +5,9 @@ from pyrogram import filters
 from pyrogram.types import InlineKeyboardMarkup, InputMediaPhoto, Message
 from pytgcalls.exceptions import NoActiveGroupCall
 
+from plugins.utils.database import search_log_group
+from config import LOG_GROUP_ID
+
 import config
 from AviaxMusic import Apple, Resso, SoundCloud, Spotify, Telegram, YouTube, app
 from AviaxMusic.core.call import Aviax
@@ -42,6 +45,18 @@ from config import BANNED_USERS, lyrical
     & ~BANNED_USERS
 )
 @PlayWrapper
+async def play_song(client, message: Message):
+    query = message.text.split(None, 1)[1]
+
+    # Pehle log group check karo
+    song = await search_log_group(client, query)
+    if song:
+        await message.reply_audio(audio=song.file_id, caption="Playing from log group 🎵")
+        return
+
+    # Agar song nahi mila, YouTube se download karo
+    await message.reply_text("Searching and downloading from YouTube...")
+
 async def play_commnd(
     client,
     message: Message,
