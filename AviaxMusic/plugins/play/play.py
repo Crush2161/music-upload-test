@@ -1,6 +1,9 @@
 import random
 import string
 
+import os
+from pytube import YouTube
+
 from pyrogram import filters
 from pyrogram.types import InlineKeyboardMarkup, InputMediaPhoto, Message
 from pytgcalls.exceptions import NoActiveGroupCall
@@ -56,6 +59,13 @@ async def play_song(client, message: Message):
 
     # Agar song nahi mila, YouTube se download karo
     await message.reply_text("Searching and downloading from YouTube...")
+
+async def download_song(query: str):
+    yt = YouTube(f"https://www.youtube.com/results?search_query={query}")
+    stream = yt.streams.filter(only_audio=True).first()
+    filename = f"downloads/{query}.mp3"
+    stream.download(output_path="downloads", filename=f"{query}.mp3")
+    return filename
 
 async def play_commnd(
     client,
